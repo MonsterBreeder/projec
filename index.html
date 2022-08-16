@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Document</title>
+  <!-- 导入页面的基本样式 -->
+  <link rel="stylesheet" href="./css/search.css" />
+  <!-- 导入 jQuery -->
+  <script src="./lib/jquery.js"></script>
+  <!-- 导入模板引擎 -->
+  <script src="./lib/template-web.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Logo -->
+    <img src="./images/taobao_logo.png" alt="" class="logo" />
+
+    <div class="box">
+      <!-- tab 栏 -->
+      <div class="tabs">
+        <div class="tab-active">宝贝</div>
+        <div>店铺</div>
+      </div>
+      <!-- 搜索区域（搜索框和搜索按钮） -->
+      <div class="search-box">
+        <input id="ipt" type="text" class="ipt" placeholder="请输入要搜索的内容" /><button class="btnSearch">
+          搜索
+        </button>
+      </div>
+      <!-- 搜索建议列表 -->
+      <div id="suggest-list"></div>
+    </div>
+  </div>
+
+  <!-- 模板结构 -->
+  <script type="text/html" id="tpl-suggestList">
+    {{each result}}
+    <!-- 搜索建议项 -->
+    <div class="suggest-item">{{$value[0]}}</div>
+    {{/each}}
+  </script>
+
+  <script>
+    $(function(){
+      //定义延时器的id
+      var timer = null;
+      //定义全局缓存对象
+      var cacheObj = [];
+
+      //定义防抖函数
+      function debounceSearch(kw){
+        timer = setTimeout(function(){
+          getSuggestList(kw);
+        },500)
+      }
+
+      //为输入框绑定keyup事件
+      $('#ipt').on('keyup',function(){
+        //清空timer
+        clearTimeout(timer);
+        var keywords = $(this).val().trim();
+        if(keywords.length <= 0){
+          return $('#suggest-list').empty().hide();
+        }
+      
+        //先判断缓存中是否有数据
+        if(cacheObj[keywords]){
+          return renderSuggestList(cacheObj[keywords]);
+        }
+
+      //获取搜索建议列表
+      debounceSearch(keywords);
+    })
+
+      //封装getSuggestList函数
+      function getSuggestList(kw){
+        $.ajax({
+          url:'https://suggest.taobao.com/sug?q=' + kw,
+          dataType:'jsonp',
+          success:function(res){
+            // console.log(res);
+            renderSuggestList(res);
+          }
+        })
+      }
+      
+      //渲染UI结构
+      function renderSuggestList(res){
+          if(res.result.length <= 0){
+            return $('#suggest-item').empty().hide();
+          }
+          var htmlStr = template('tpl-suggestList',res);
+          $('#suggest-list').html(htmlStr).show();
+
+          //获取用户输入的内容，当作键(相当于索引号)
+          var k = $('#ipt').val().trim();
+          //将数据作为值，进行缓存
+          cacheObj[k] = res;
+      }
+
+    })
+
+    //原生XML
+    // var xhr = new XMLHttpRequest();
+    // var fd = new FormData();
+    // xhr.open('jsonp','https://suggest.taobao.com/sug?q=' + fd);
+    // xhr.send(fd);
+    // xhr.onreadystatechange = function(){
+    //   if(xhr.readyState === 4 && xhr.status === 200){
+    //     console.log(JSON.parse(xhr.responseType));
+    //   }
+    // }
+
+    // var ipt = document.querySelector('#ipt');
+    // ipt.addEventListener('keyup',function(){
+    //   var keywords = ipt.value;
+    //   // console.log(typeof keywords);
+    //   // for(var i = 0;i < keywords.length;i++){
+    //     if(JSON.stringify(keywords.length) <= 0){
+    //     return;
+    //   }
+    //   console.log(keywords);
+    //    // }
+    // })
+  </script>
+
+</body>
+
+</html>
